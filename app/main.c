@@ -8,7 +8,7 @@ int main(int argc, char **argv) {
 
     scanf("%999[^\n]", ingredienser);
 
-    printf("Du har indtastet: %s\n", ingredienser);
+    printf("Du har indtastet dette: %s\n", ingredienser);
 
     return 0;
 
