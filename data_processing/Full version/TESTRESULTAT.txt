@@ -1,0 +1,13 @@
+test_adjacent_ids_duplicates_and_exact_matching (__main__.RecipeTests.test_adjacent_ids_duplicates_and_exact_matching) ... ok
+test_all_removed_and_empty (__main__.RecipeTests.test_all_removed_and_empty) ... ok
+test_already_filtered_input (__main__.RecipeTests.test_already_filtered_input) ... ok
+test_instructions_and_portions (__main__.RecipeTests.test_instructions_and_portions) ... ok
+test_invalid_input_preserves_existing_output (__main__.RecipeTests.test_invalid_input_preserves_existing_output) ... ok
+test_json_format_and_escaping (__main__.RecipeTests.test_json_format_and_escaping) ... ok
+test_original_793_to_774_and_full_output (__main__.RecipeTests.test_original_793_to_774_and_full_output) ... ok
+test_quantities_rounding_and_notes (__main__.RecipeTests.test_quantities_rounding_and_notes) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.506s
+
+OK
