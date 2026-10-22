@@ -4,7 +4,7 @@ int main(int argc, char **argv) {
     char ingredienser [1000];
     
     printf("=== RECIPE FINDER ===\n");
-    printf("Skrive denne ingredienser: ");
+    printf("Skriv dine ingredienser: ");
 
     scanf("%999[^\n]", ingredienser);
 
