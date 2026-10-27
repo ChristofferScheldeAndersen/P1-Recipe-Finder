@@ -8,7 +8,7 @@ A tool that helps users find recipes based on the ingredients they have availabl
 - [Group contract and shared agreements – Word](https://aaudk-my.sharepoint.com/:w:/r/personal/pj05pc_student_aau_dk/_layouts/15/Doc.aspx?sourcedoc=%7B45D45B37-DD1B-4080-88D1-66A89735BDC5%7D&file=p1-udkast.docx&fromShare=true&action=default&mobileredirect=true)
 - [Tasks and project planning](https://app.hacknplan.com/p/243958/kanban?categoryId=0&boardId=691493)
 - [StepByStep](https://aaudk-my.sharepoint.com/:w:/r/personal/pj05pc_student_aau_dk/_layouts/15/Doc.aspx?sourcedoc=%7B09B7E598-D2F3-40EE-84A1-5383DEB5A957%7D&file=Document%205.docx&action=editNew&mobileredirect=true&wdPreviousSession=2c705141-6eff-4e8b-aba9-1aa26fd0b651&wdPreviousSessionSrc=AppHomeWeb)
--   
+- [Meeting summaries](https://drive.google.com/drive/folders/1lkUzUdUZ0dS2WDPAxVM_bmCd-YmoM7iq?usp=drive_link)
   
 
 ## Project Structure
