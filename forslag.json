@@ -1,0 +1,53 @@
+
+{
+  "id": 52764,
+  "name": "Garides Saganaki",
+  "category": "Seafood",
+  "area": "Greek",
+  "country": "Greece",
+  "portions": 2,
+  "tags": ["Seafood", "Shellfish"],
+  "ingredients": [
+    {
+      "name": "Raw king prawns",
+      "amount": 500,
+      "unit": "g"
+    },
+    {
+      "name": "Olive oil",
+      "amount": 3,
+      "unit": "tablespoons"
+    },
+    {
+      "name": "Chopped onion",
+      "amount": 1
+    },
+    {
+      "name": "Freshly chopped parsley",
+      "unit": "pinch"
+    },
+    {
+      "name": "White wine",
+      "amount": 250,
+      "unit": "ml"
+    },
+    {
+      "name": "Chopped tomatoes",
+      "amount": 1,
+      "unit": "(400g) tin"
+    },
+    {
+      "name": "Minced garlic",
+      "amount": 0.5,
+      "unit": "teaspoons"
+    },
+    {
+      "name": "Cubed Feta cheese",
+      "amount": 1,
+      "unit": "(200g) pack"
+    }
+  ],
+  "instructions": "Place the prawns in a pot...",
+  "image": "https://www.themealdb.com/images/media/meals/wuvryu1468232995.jpg",
+  "youtube": "https://www.youtube.com/watch?v=uO0ejc85zSE"
+}
