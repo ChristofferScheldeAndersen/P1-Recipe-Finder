@@ -1,0 +1,281 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{upquote}
+\usepackage[hidelinks]{hyperref}
+
+\newcommand{\code}[1]{\texttt{#1}}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\renewcommand{\arraystretch}{1.25}
+\setlength{\parskip}{0.5em}
+\setlength{\parindent}{0pt}
+
+\title{Ingredient List Program:\\How It Works and How It Was Built}
+\author{Jakob}
+\date{30 October 2026}
+
+\begin{document}
+
+\maketitle
+
+%--------------------------------------------------------------------
+\section{Purpose}
+
+\code{ingredients.c} turns the recipe file \code{opskrifter.json} into a sorted
+text file with every unique ingredient, one per line. On the current dataset it
+reads 8179 ingredient entries and reduces them to the unique names.
+
+The meal planner needs this list for two things: comparing the ingredients a
+user types in against the recipes, and a live search that suggests ingredients
+as the user types. Both are simpler and faster with one clean, sorted list than
+with the raw recipe file.
+
+The program was originally planned as a measurement normalizer
+(\code{simple3.c}). The plan changed to this ingredient list, but the reading
+and validation code written for \code{simple3.c} was reused unchanged.
+
+%--------------------------------------------------------------------
+\section{How the program works}
+
+The program runs as a pipeline:
+
+\begin{center}
+\code{./ingredients < opskrifter.json > ingredients.txt}
+\end{center}
+
+It never opens a file itself; the shell connects the input file to standard
+input and the output file to standard output.
+
+\begin{enumerate}[leftmargin=*, itemsep=0.4em]
+  \item \textbf{Read everything into memory.} Characters are read with
+    \code{getchar()} into a buffer from \code{malloc}. When the buffer is full,
+    \code{realloc} doubles its size. A \code{'\textbackslash 0'} is added at the
+    end so string functions like \code{strstr} work on it.
+  \item \textbf{Validate the input.} If the text does not contain both
+    \code{"meals"} and \code{"strIngredient1"}, the program prints an error to
+    standard error, frees the buffer and exits with code 1.
+  \item \textbf{Find each ingredient.} A pointer \code{p} walks through the
+    buffer. \code{strstr} finds the next \code{"strIngredient} key,
+    \code{strchr} finds the colon, and spaces are skipped. A value starting with
+    \code{n} is \code{null} and is skipped. A value starting with \code{"} is a
+    name.
+  \item \textbf{Mark the name with two pointers.} \code{start} points at the
+    first character, \code{end} at the closing quote. \code{p} is moved past
+    the closing quote before anything else, so the next search starts in the
+    right place.
+  \item \textbf{Trim.} \code{start} moves right and \code{end} moves left past
+    any whitespace, using \code{isspace}. The length is measured after
+    trimming, so empty and whitespace-only names are skipped.
+  \item \textbf{Copy in lowercase.} Each name gets its own memory
+    (\code{length + 1} bytes), is copied character by character through
+    \code{tolower}, and ends with \code{'\textbackslash 0'}.
+  \item \textbf{Store.} The copy goes into \code{list}, a growing array of
+    \code{char *}. It doubles with \code{realloc} when full, using
+    \code{sizeof(char *)} because each box holds a pointer.
+  \item \textbf{Sort.} \code{qsort} sorts the list with a compare function that
+    unpacks each element (\code{*(const char **)a}) and calls \code{strcmp}.
+  \item \textbf{Print unique names.} After sorting, duplicates sit next to each
+    other. A name is printed only if it is the first one or differs from the
+    one before it.
+  \item \textbf{Clean up.} Every name is freed, then the list, then the buffer.
+    The total and unique counts are printed to standard error, so they never
+    end up in the output file.
+\end{enumerate}
+
+%--------------------------------------------------------------------
+\section{Development process}
+
+The program was built in small steps, and each step had to compile and pass a
+test before the next one started. That way there was always a working version,
+and a new bug could only be in the code just added.
+
+I wrote the code myself, with Claude (an AI assistant) acting as a tutor:
+explaining concepts, reviewing my code and pointing out bugs, rather than
+writing the program for me.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}l L L@{}}
+\toprule
+\textbf{Step} & \textbf{What was built} & \textbf{How it was tested} \\
+\midrule
+0  & Studied the dataset: TheMealDB format, \code{null} values, empty strings,
+     odd measurements
+   & Wrote a text file of tricky cases \\
+1a & Echo program with \code{getchar} / \code{putchar}
+   & \code{diff} against the original file: no output means identical \\
+1b & Read the whole input into a growing buffer, then \code{fwrite} it
+   & Same \code{diff} test, plus a stress test with the buffer starting at
+     4 bytes \\
+2  & Input validation with \code{strstr}
+   & A fake file (\code{echo "hello"}) must give an error and exit code 1
+     (\code{echo \$?}) \\
+3a & Pointer loop that counts ingredient keys
+   & Count compared with expectations \\
+3b & Find the start of each value; skip \code{null}
+   & Printed the first letter of each name \\
+3c & Find the end of each value; print the full name
+   & \code{head -20} compared against the file \\
+4a & Trim whitespace
+   & Printed names in brackets, e.g.\ \code{[salt]}, to see the edges \\
+4b & Lowercase copy in its own memory
+   & Output checked for capitals \\
+4c & Store copies in a growing list
+   & Count matched \code{wc -l} (8179); stress test with
+     \code{list\_cap = 2}, then \code{diff} against the normal output \\
+5  & Sort with \code{qsort} and skip duplicates
+   & \code{wc -l} matched the unique count;
+     \code{grep -x "olive oil"} returned exactly one line \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+During development every build used
+\code{-Wall -Wextra -g -fsanitize=address}, so the compiler warned about
+suspicious code and AddressSanitizer reported memory errors with the exact line
+number.
+
+%--------------------------------------------------------------------
+\section{Design decisions}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.32\textwidth} L@{}}
+\toprule
+\textbf{Decision} & \textbf{Why} \\
+\midrule
+Read from stdin, write to stdout
+  & The shell handles the files, so the program needs no \code{fopen}, and it
+    works in a pipeline. \\
+Load the whole file into memory
+  & Finding keys means looking ahead in the text; that is easy in one string
+    and hard one character at a time. \\
+Grow buffers by doubling
+  & Adding a fixed amount means copying the data again and again; doubling
+    needs very few copies. \\
+\code{realloc} into a temporary pointer
+  & If \code{realloc} fails it returns \code{NULL} but keeps the old memory.
+    Assigning straight to \code{buf} would lose the only pointer to it. \\
+Errors to stderr, exit code 1
+  & Standard output goes into the result file; error messages must reach the
+    screen, and the exit code tells the shell something failed. \\
+Validate with \code{"meals"} and \code{"strIngredient1"}
+  & A full JSON check would be a big job. Two strings that the recipe file
+    always has, and a random file rarely has both of, catch wrong input
+    cheaply. \\
+Trim and lowercase every name
+  & The group decided that \code{Olive oil}, \code{olive oil} and
+    \code{Salt\textvisiblespace} should count as the same. Cleaning every name
+    the same way makes them identical strings. \\
+Sort, then compare neighbours
+  & After sorting, duplicates sit side by side, so each name is compared with
+    one neighbour instead of the whole list. \\
+Plain text output, not JSON
+  & The meal planner is written in C. A line-per-ingredient file is read with
+    \code{fgets}; JSON would need its own parser. \\
+Alphabetical order
+  & Supports the live search: all names starting with the same letters sit in
+    one block. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+The meal planner should clean user input with the same two rules (trim,
+lowercase). Then a plain \code{strcmp} is enough to match it against the list.
+
+%--------------------------------------------------------------------
+\section{Bugs found and lessons learned}
+
+Most bugs came from code in the wrong place or in the wrong order, not from
+wrong logic. Several of them still gave correct-looking output, which is why
+testing and reading the code both mattered.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.28\textwidth} L L@{}}
+\toprule
+\textbf{Bug} & \textbf{Symptom} & \textbf{Lesson} \\
+\midrule
+\code{cap} used before it was declared
+  & Compile error
+  & C reads top to bottom: declare before use. \\
+\code{buf = tmp;} placed after \code{return 1;}
+  & Buffer never grew; writes past its end, output still looked right
+  & Code after \code{return} never runs. Undefined behaviour can hide. \\
+Search string \code{"\textbackslash"strIngredient\textbackslash""}
+  & Would reject the real file
+  & Search for text that actually occurs; test with good input too. \\
+\code{printf("\%c", *p)} after the loop
+  & Segmentation fault on address 0
+  & When the loop ends, \code{p} is \code{NULL}. AddressSanitizer gave the
+    exact line. \\
+\code{strchr(p, ':');} without \code{p =}
+  & Program printed nothing
+  & A function's return value must be stored to have an effect. \\
+\code{strchr(*start, ...)} and \code{*end == NULL}
+  & Compile warning / crash
+  & \code{start} is a position, \code{*start} is a character. No star when
+    comparing with \code{NULL}. \\
+\code{length} measured before trimming
+  & Copies included the closing quote
+  & Measure after the step that changes what is measured. \\
+\code{p = end + 1} after \code{end} had moved
+  & Pointer landed inside the value; output still looked right
+  & Save positions before anything moves them. \\
+\code{free(buf)} inside the loop
+  & \code{heap-use-after-free}
+  & Free memory only when nothing will use it again. \\
+\code{free(list)} inside the \code{for} loop
+  & Would free it repeatedly
+  & Free the items first, then the container, once. \\
+Missing \code{*} in \code{compare\_names}
+  & Nonsense sort order
+  & \code{qsort} passes the address of a list box; the star opens the box. \\
+Missing count with \code{| head -20}
+  & Program stopped early
+  & \code{head} closes the pipe; the program is killed by \code{SIGPIPE}.
+    Redirect to a file instead. \\
+Forgot to recompile
+  & Old output (8179 lines, with duplicates)
+  & Recompile after every change. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+%--------------------------------------------------------------------
+\section{Limitations and next steps}
+
+The program does what it was built for on the current dataset; these are the
+known gaps.
+
+\begin{itemize}[leftmargin=*, itemsep=0.4em]
+  \item \textbf{Near-duplicates stay separate.} \code{egg} / \code{eggs} and
+    \code{onion} / \code{chopped onion} are different strings in the data. The
+    group needs to decide how smart matching should be, e.g.\ ignoring a
+    trailing \code{s}, or matching when the user's word appears inside the name
+    (\code{strstr}).
+  \item \textbf{Escaped quotes are not handled.} A name containing
+    \code{\textbackslash"} would be cut short. The current dataset has none.
+  \item \textbf{Lowercasing is ASCII only.} \code{tolower} leaves letters like
+    \code{Ø} or \code{É} unchanged.
+  \item \textbf{Partial cleanup on out-of-memory errors.} Names already in the
+    list are not freed before exiting; the operating system reclaims them. A
+    \code{free\_list(list, count)} helper would fix this and remove repeated
+    cleanup code.
+  \item \textbf{Validation message.} ``Could not find what you are looking
+    for'' could say more clearly that the input is not the recipe file.
+  \item \textbf{Final build.} Drop \code{-fsanitize=address} from the final
+    compile command; it makes the program slower.
+\end{itemize}
+
+Next: load \code{ingredients.txt} into the meal planner with \code{fgets} and
+build the live search on the sorted list.
+
+\end{document}

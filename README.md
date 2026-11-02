@@ -1,23 +1,98 @@
-# P1 – Recipe Finder
+# ingredients
 
-A tool that helps users find recipes based on the ingredients they have available and their preferences. The tool is written in C and runs in the terminal. It is developed as part of a first-semester software project.
+A small C program that reads the recipe file `opskrifter.json` (TheMealDB format) and writes a sorted list of every **unique ingredient** in it, one per line.
 
-## Project Links
+The list is used by the meal planner to compare the user's ingredients against the recipes and to power a live ingredient search.
 
-- [Project report – Overleaf](https://www.overleaf.com/8541186978sydpvzjqrdzr#8b17e6)
-- [Group contract and shared agreements – Word](https://aaudk-my.sharepoint.com/:w:/r/personal/pj05pc_student_aau_dk/_layouts/15/Doc.aspx?sourcedoc=%7B45D45B37-DD1B-4080-88D1-66A89735BDC5%7D&file=p1-udkast.docx&fromShare=true&action=default&mobileredirect=true)
-- [Tasks and project planning](https://app.hacknplan.com/p/243958/kanban?categoryId=0&boardId=691493)
-- [StepByStep](https://aaudk-my.sharepoint.com/:w:/r/personal/pj05pc_student_aau_dk/_layouts/15/Doc.aspx?sourcedoc=%7B09B7E598-D2F3-40EE-84A1-5383DEB5A957%7D&file=Document%205.docx&action=editNew&mobileredirect=true&wdPreviousSession=2c705141-6eff-4e8b-aba9-1aa26fd0b651&wdPreviousSessionSrc=AppHomeWeb)
-- [Meeting summaries](https://drive.google.com/drive/folders/1lkUzUdUZ0dS2WDPAxVM_bmCd-YmoM7iq?usp=drive_link)
-  
+## Build
 
-## Project Structure
+```
+gcc -Wall -Wextra -o ingredients ingredients.c
+```
 
-- `data_collection/` – Scripts and tools for downloading recipe data.
-- `data_processing/` – Cleaning and transforming the collected data.
-- `data_organisation/` – Database design, data storage, and access.
-- `app/` – The C terminal application.
+While developing, add the AddressSanitizer to catch memory bugs (slower, so leave it out of the final build):
 
-## Getting Started
+```
+gcc -Wall -Wextra -g -fsanitize=address -o ingredients ingredients.c
+```
 
-Instructions for setting up, compiling, and running the application will be added as development progresses.
+## Usage
+
+The program reads from standard input and writes to standard output:
+
+```
+./ingredients < opskrifter.json > ingredients.txt
+```
+
+Two status lines are printed to standard error (so they don't end up in the output file):
+
+```
+8179 names stored
+<N> unique names
+```
+
+## Output format
+
+A plain text file with one ingredient per line, all lowercase, sorted alphabetically, no duplicates:
+
+```
+bacon
+basil
+olive oil
+salt
+```
+
+A text file was chosen over JSON because the meal planner is also written in C: each line can be read with `fgets`, so no JSON parser is needed.
+
+## How names are cleaned
+
+Two ingredient names count as the same if they only differ in letter case or in spaces at the start or end. Every name is therefore:
+
+1. **Trimmed** of leading and trailing whitespace (`" Salt "` → `"Salt"`)
+2. **Lowercased** (`"Salt"` → `"salt"`)
+
+Empty values (`""`), whitespace-only values and `null` values are skipped.
+
+The meal planner should clean user input with the same two rules, so a plain `strcmp` is enough to compare.
+
+## Input validation
+
+If the input does not contain both `"meals"` and `"strIngredient1"`, the program prints an error to standard error and exits with code `1` without writing any output.
+
+## How it works (short version)
+
+1. Read all of standard input into one growing buffer (`malloc` / `realloc`).
+2. Check that the input looks like the recipe file.
+3. Walk through the buffer with a pointer, using `strstr` to find each `"strIngredientN"` key and `strchr` to find its value.
+4. Trim and lowercase each value into its own string and store it in a growing array of strings.
+5. Sort the array with `qsort`.
+6. Print each name only if it differs from the one before it (duplicates sit next to each other after sorting).
+7. Free all memory.
+
+## Testing
+
+```
+# output should contain no duplicates and be alphabetical
+./ingredients < opskrifter.json > ingredients.txt
+head -30 ingredients.txt
+
+# line count should match the "unique names" number
+wc -l ingredients.txt
+
+# a common ingredient should appear exactly once
+grep -x "olive oil" ingredients.txt
+
+# wrong input should give an error and exit code 1
+echo "hello" > fake.json
+./ingredients < fake.json
+echo $?
+```
+
+The growth logic was also stress-tested by temporarily setting the starting capacities very low (`list_cap = 2`) and checking with `diff` that the output was unchanged.
+
+## Known limitations
+
+- **Escaped quotes** (`\"`) inside an ingredient name are not handled; the name would be cut at the escaped quote. The current dataset does not contain any.
+- **Near-duplicates** are kept as separate entries, e.g. `egg` / `eggs` or `onion` / `chopped onion`. They are genuinely different strings in the data; how smart the matching should be is a decision for the meal planner.
+- **Lowercasing** uses `tolower`, which only changes plain ASCII letters. Letters like `Ø` or `É` keep their case.
+- If memory runs out in the middle of reading, names already stored in the list are not freed before exiting (the operating system reclaims them). A `free_list` helper would fix this.
