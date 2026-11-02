@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
             int n = 0;
             while (n < i) { 
                 //while loop, prints all parts of the array except 'D'
-                //REMEMBER: use "< i" as to avoid including 'D' in the output
+                //REMEMBER: use "n < i" as to avoid including 'D' in the output
                 printf("%s\n", ingredients[n]); 
                 n++;
             }
