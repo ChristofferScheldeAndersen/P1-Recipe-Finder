@@ -29,11 +29,11 @@ int main(void) {
     Maybe this should be the size for history only? Or recipes too
     */
     // Left window
-    int menu_h = LINES-4, menu_w = 35, menu_y = 2, menu_x = 2;
+    int menu_h = LINES-5, menu_w = 35, menu_y = 2, menu_x = 2;
     // Upper-right window ((some)20% of available height)
-    int up_h = (LINES-5)/5, up_w = COLS - 40, up_y = 2, up_x = 38; // You could also do (LINES-4)*0.2, but integer division truncates the decimal part
+    int up_h = (LINES-6)/5, up_w = COLS - 40, up_y = 2, up_x = 38; // You could also do (LINES-4)*0.2, but integer division truncates the decimal part
     // Lower-right window (remaining height)
-    int down_h = (LINES-4)-up_h, down_w = COLS - 40, down_y = up_y+up_h, down_x = 38;
+    int down_h = (LINES-5)-up_h, down_w = COLS - 40, down_y = up_y+up_h, down_x = 38;
 
     // Create windows
     // newwin(height, width, y, x)
@@ -86,7 +86,7 @@ int main(void) {
     3 = History
     4 = Exit
     */
-    const int rightResize[5][4] = {
+    const int rightResize[][4] = {
         {menu_h, up_w, 0, 0},
         {up_h, up_w, down_h, down_w},
         {menu_h, up_w, 0, 0},
@@ -97,9 +97,26 @@ int main(void) {
     int selected = 0;
 
     while (1) {
+        int rightDownVisible = 0;
+
         erase();
+
+        // Constantly visible info
+        mvprintw(LINES-3, 2, "Use arrow keys to navigate");
+        mvprintw(LINES-2, 2, "Right arrow to select, left arrow to go back");
+
         refresh();
         
+        // wresize, resizes the windows rightUp and rightDown based on the selected menu item. The rightResize array contains the new dimensions for each window based on the selected menu item.
+        wresize(rightUp, rightResize[selected][0], rightResize[selected][1]);
+
+        if (rightResize[selected][2] > 0) {
+            wresize(rightDown, rightResize[selected][2], rightResize[selected][3]);
+            rightDownVisible = 1;
+        } else {
+            werase(rightDown);     
+        }
+
         werase(menu);
         werase(rightUp);
         werase(rightDown);
@@ -114,7 +131,7 @@ int main(void) {
             if (i == selected) {
                 wattron(menu, A_REVERSE);
             }
-            mvwprintw(menu, i + 2, 3, "%-29s", menuItems[i]);
+            mvwprintw(menu, i + 2, 3, "%-*s", menu_w - 6, menuItems[i]); // Uses a pointer to calculate the width of menu minus the spaces on either side (2+2) and minus the borders (1+1)
             if (i == selected) {
                 wattroff(menu, A_REVERSE);
             }
@@ -124,21 +141,17 @@ int main(void) {
         mvwprintw(rightUp, 0, 2, "%s", rightTitles[selected][0]);
         mvwprintw(rightDown, 0, 2, "%s", rightTitles[selected][1]);
         
-        // Contents of windows
+        // Contents (description) of windows
         mvwprintw(rightUp, 1, 2, "%s", rightContents[selected][0]);
         mvwprintw(rightDown, 1, 2, "%s", rightContents[selected][1]);
-        
-        //wresize
-        wresize(rightUp, rightResize[selected][0], rightResize[selected][1]);
-
-        if (rightResize[selected][2] > 0) {
-            wresize(rightDown, rightResize[selected][2], rightResize[selected][3]);
-        }
         
         // Display
         wrefresh(menu);
         wrefresh(rightUp);
-        wrefresh(rightDown);
+        if (rightDownVisible == 1) {
+            wrefresh(rightDown);
+        }
+        // wrefresh(rightDown); // deleted because it was causing the rightDown window to be displayed even when it was not needed
 
         // Wait for a key
         int keyPressed = wgetch(menu);
@@ -147,6 +160,12 @@ int main(void) {
             selected--;
         } else if (keyPressed == KEY_DOWN && selected < 4) {
             selected++;
+        }
+
+        if (keyPressed == '\n' || keyPressed == KEY_RIGHT) {
+            if (selected == 4) { // Exit
+                break;
+            }
         }
     }
     
