@@ -2,6 +2,13 @@
 #include <stdio.h>
 #include <ncurses/ncurses.h>
 
+
+int goBack(WINDOW *win) {
+    if (wgetch(win) == KEY_LEFT) { // Exit
+        
+    }
+}
+
 int main(void) {
     // Start ncurses
     initscr();
@@ -34,6 +41,13 @@ int main(void) {
     int up_h = (LINES-6)/5+1, up_w = COLS - 40, up_y = 2, up_x = 38; // You could also do (LINES-4)*0.2, but integer division truncates the decimal part
     // Lower-right window (remaining height)
     int down_h = (LINES-5)-up_h, down_w = COLS - 40, down_y = up_y+up_h, down_x = 38;
+    
+    int fullscreen_w = COLS-4; // Fullscreen window (for selected menu items)
+    int selected = 0; // The section you're hovering over in the menu
+    int inSelectedView = 0; // The section after selecting it
+    int whileLoopRunning = 1; // Enables or disables the while loop, 1 = enabled 0 = disabled
+    int rightDownVisible = 0; // Decides whether the rightDown window is visible, disabled by default
+   
 
     // Create windows
     // newwin(height, width, y, x)
@@ -48,6 +62,7 @@ int main(void) {
 
     // Allow arrow keys in the menu window
     keypad(menu, TRUE);
+    keypad(rightUp, TRUE);
 
     /*
     Maybe profile creation first? Or it checks if you have one and prompts you if you enter preferences/history without one
@@ -85,44 +100,44 @@ int main(void) {
     2 = Preferences
     3 = History
     4 = Exit
+    The 0's don't hide the windows, they only tell us to hide them, like by checking if rightResize[0][2] is 0 in an if-statement
     */
     const int rightResize[][4] = {
-        {menu_h, up_w, 0, 0},
+        {menu_h, up_w, 0, 0}, 
         {up_h, up_w, down_h, down_w},
         {menu_h, up_w, 0, 0},
         {up_h, up_w, down_h, down_w},
         {menu_h, up_w, 0, 0}
     };
 
-    int selected = 0;
-    
-    while (1) {
-        int rightDownVisible = 0;
 
-        erase();
-
+    /* WHILE LOOP */
+    while (whileLoopRunning) {
         // Constantly visible info
         mvprintw(LINES-3, 2, "Use arrow keys to navigate");
         mvprintw(LINES-2, 2, "Right arrow to select, left arrow to go back");
-
         refresh();
         
-        // wresize, resizes the windows rightUp and rightDown based on the selected menu item. The rightResize array contains the new dimensions for each window based on the selected menu item.
-        wresize(rightUp, rightResize[selected][0], rightResize[selected][1]);
+        if (inSelectedView == 0) {
+            // wresize, resizes the windows rightUp and rightDown based on the selected menu item. The rightResize array contains the new dimensions for each window based on the selected menu item.
+            wresize(rightUp, rightResize[selected][0], rightResize[selected][1]);
+            if (rightResize[selected][2] > 0) { // Checks if the rightDown window should be visible
+                wresize(rightDown, rightResize[selected][2], rightResize[selected][3]);
+                rightDownVisible = 1;
+            }
 
-        if (rightResize[selected][2] > 0) {
-            wresize(rightDown, rightResize[selected][2], rightResize[selected][3]);
-            rightDownVisible = 1;
+            werase(menu);
+            werase(rightUp);
+            werase(rightDown);
+            // Draw borders
+            box(menu, 0, 0);
         } else {
-            werase(rightDown);     
+            goback(rightUp); // Go back to menu, make it work somehow
+            werase(rightUp);
+            werase(rightDown);
+            rightDownVisible = 1;
         }
 
-        werase(menu);
-        werase(rightUp);
-        werase(rightDown);
-
-         // Draw borders
-        box(menu, 0, 0);
         box(rightUp, 0, 0);
         box(rightDown, 0, 0);
 
@@ -137,13 +152,12 @@ int main(void) {
             }
         }
 
+        /* TEXT LOADING */
         // Menu window title loader
         mvwprintw(menu, 0, 2, "| SELECTION MENU |");
-
         // Both right windows' title loader
         mvwprintw(rightUp, 0, 2, "%s", rightTitles[selected][0]);
         mvwprintw(rightDown, 0, 2, "%s", rightTitles[selected][1]);
-        
         // Contents (description) of windows
         mvwprintw(rightUp, 2, 3, "%s", rightContents[selected][0]);
         mvwprintw(rightDown, 2, 3, "%s", rightContents[selected][1]);
@@ -157,22 +171,58 @@ int main(void) {
         // wrefresh(rightDown); // deleted because it was causing the rightDown window to be displayed even when it was not needed
 
         // Wait for a key
-        int keyPressed = wgetch(menu);
-
-        if (keyPressed == KEY_UP && selected > 0) {
-            selected--;
-        } else if (keyPressed == KEY_DOWN && selected < 4) {
-            selected++;
+        int menuKeyPressed = wgetch(menu);
+        if (inSelectedView == 0) {
+            if (menuKeyPressed == KEY_UP && selected > 0) {
+                selected--;
+            } else if (menuKeyPressed == KEY_DOWN && selected < 4) {
+                selected++;
+            }
         }
 
-        if (keyPressed == '\n' || keyPressed == KEY_RIGHT) {
-            // switchcase for each menu item?
-            if (selected == 4) { // Exit
+        if (menuKeyPressed == '\n' || menuKeyPressed == KEY_RIGHT) {
+            // Interaction with the actual right windows using selection and KEY_RIGHT
+            switch (selected) {
+            case 0:
+                wresize(rightUp, rightResize[selected][0], fullscreen_w);
+                mvwin(rightUp, up_y, menu_x); // Give the window the menu's position so it doesn't float to the side
+                inSelectedView = 1;
                 break;
+
+            case 1:
+                wresize(rightUp, rightResize[selected][0], fullscreen_w);
+                wresize(rightDown, rightResize[selected][2], fullscreen_w);
+                mvwin(rightUp, up_y, menu_x);
+                mvwin(rightDown, down_y, menu_x);
+                inSelectedView = 1;
+                break;
+
+            case 2:
+                wresize(rightUp, rightResize[selected][0], fullscreen_w);
+                mvwin(rightUp, up_y, menu_x);
+                inSelectedView = 1;
+                break;
+
+            case 3:
+                wresize(rightUp, rightResize[selected][0], fullscreen_w);
+                wresize(rightDown, rightResize[selected][2], fullscreen_w);
+                mvwin(rightUp, up_y, menu_x);
+                mvwin(rightDown, down_y, menu_x);
+                inSelectedView = 1;
+                break;
+
+            case 4:
+                wresize(rightUp, rightResize[selected][0], fullscreen_w);
+                mvwin(rightUp, up_y, menu_x);
+                inSelectedView = 1;
+                if (wgetch(rightUp) == '\n' || wgetch(rightUp) == KEY_RIGHT) { // Exit
+                    whileLoopRunning = 0;
+                    break;
+                }
             }
         }
     }
-    
+
     // Clean up
     delwin(menu);
     delwin(rightUp);
@@ -181,3 +231,48 @@ int main(void) {
 
     return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        /*
+        if (keyPressed == '\n' || keyPressed == KEY_RIGHT) {
+            // switchcase for each menu item?
+            // Interaction with the actual right windows using selection and KEY_RIGHT
+            switch (selected) {
+            case 0:
+                showSelectedView(menu, fullscreen_w, rightUp, rightResize[selected][0], NULL, 0);
+                break;
+
+            case 1:
+                showSelectedView(menu, fullscreen_w, rightUp, rightResize[selected][0], rightDown, rightResize[selected][2]);
+                break;
+
+            case 2:
+                showSelectedView(menu, fullscreen_w, rightUp, rightResize[selected][0], NULL, 0);
+                break;
+
+            case 3:
+                showSelectedView(menu, fullscreen_w, rightUp, rightResize[selected][0], rightDown, rightResize[selected][2]);
+                break;
+
+            case 4:
+                showSelectedView(menu, fullscreen_w, rightUp, rightResize[selected][0], NULL, 0);
+                if (keyPressed == '\n' || keyPressed == KEY_RIGHT) { // Exit
+                    whileLoopRunning = 0;
+                    break;
+                }
+            }
+        }
+            */
