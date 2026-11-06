@@ -52,6 +52,8 @@ int main(void) {
         {"Deletes a window when finished.", "We call it before endwin()."}
     };
 
+    //-------------------------------------------------------------------------------//
+
     int selected = 0;
 
     // 4. MAIN LOOP
