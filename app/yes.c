@@ -7,7 +7,7 @@ int main(void)
 
     lav_main_vindue();
 
-    getch();
+    vis_main_menu();
 
     luk_design();
 
