@@ -21,7 +21,7 @@ void ingredients_menu (void) /*The functions that draws a new window when the us
 "type in ingredients"*/
 {
    WINDOW* ingredients_window;
-    ingredients_window = newwin(8, 30, 1, 1);
+    ingredients_window = newwin(30, 28, 1, 1);
     box(ingredients_window, 0, 0);
     mvwprintw(ingredients_window, 1, 1, "Type in your ingredients");
     wrefresh(ingredients_window);
@@ -72,7 +72,7 @@ void vis_main_menu(void) {/*The functions actions - creates next window with the
     int valg = 0; /*Currently two choices in menu (0; ingredients and 1; exit means standard is always 0)*/
 
 
-    menu = newwin(8, 30, 1, 1); /*Creates window 1 */
+    menu = newwin(30, 28, 1, 1); /*Creates window 1 */
     menu2 = newwin(8, 25, 1, 35); /*Creates window 2*/
     /*newwin funct has four arguments: (height, width, start colomn, start row)*/
 
@@ -113,7 +113,7 @@ if (valg == 0) { /*If the choice is 0 (currently 'ingredients') the following wi
     wattron(menu, COLOR_PAIR(2)); /*Color 2 will turn on*/
     wattron(menu, A_REVERSE); /*Highlighter will turn on*/
 } 
-    mvwprintw(menu, 2, 1, ">Type in ingredients"); /*The text in which the previous functions will work on*/
+    mvwprintw(menu, 3, 1, ">Type in ingredients"); /*The text in which the previous functions will work on*/
     wattroff(menu, A_REVERSE); /*Turns off highlighter*/
     wattroff(menu, COLOR_PAIR(2)); /*Turns off color*/
 
@@ -122,7 +122,8 @@ if (valg == 1) { /*If the other option is chosen (currently 'exit') */
     wattron(menu, A_REVERSE); /*Turns on highlighter */
     wattron(menu, COLOR_PAIR(2)); /*Turns on color 2*/
 }
-    mvwprintw(menu, 3, 1, ">Exit"); /*The text where previous functions is used on*/
+    mvwprintw(menu, 4, 1, ">Exit"); /*The text where previous functions is used on*/
+    mvwprintw(menu, 7, 1, " ");
     wattroff(menu, A_REVERSE); /*Turns off highlighter*/
     wattroff(menu, COLOR_PAIR(2)); /*Turns off color*/
 
@@ -155,8 +156,8 @@ means this only works in the window and not stdscr*/
         ingredients_menu();
     }
     else if (valg==1) {
-        vis_main_menu();
-    }
+        lav_main_vindue;
+        }
 
 
 
