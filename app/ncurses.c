@@ -31,7 +31,7 @@ int main(void) {
     // Left window
     int menu_h = LINES-5, menu_w = 35, menu_y = 2, menu_x = 2;
     // Upper-right window ((some)20% of available height)
-    int up_h = (LINES-6)/5, up_w = COLS - 40, up_y = 2, up_x = 38; // You could also do (LINES-4)*0.2, but integer division truncates the decimal part
+    int up_h = (LINES-6)/5+1, up_w = COLS - 40, up_y = 2, up_x = 38; // You could also do (LINES-4)*0.2, but integer division truncates the decimal part
     // Lower-right window (remaining height)
     int down_h = (LINES-5)-up_h, down_w = COLS - 40, down_y = up_y+up_h, down_x = 38;
 
@@ -95,7 +95,7 @@ int main(void) {
     };
 
     int selected = 0;
-
+    
     while (1) {
         int rightDownVisible = 0;
 
@@ -137,13 +137,16 @@ int main(void) {
             }
         }
 
-        // Right window title loader
+        // Menu window title loader
+        mvwprintw(menu, 0, 2, "| SELECTION MENU |");
+
+        // Both right windows' title loader
         mvwprintw(rightUp, 0, 2, "%s", rightTitles[selected][0]);
         mvwprintw(rightDown, 0, 2, "%s", rightTitles[selected][1]);
         
         // Contents (description) of windows
-        mvwprintw(rightUp, 1, 2, "%s", rightContents[selected][0]);
-        mvwprintw(rightDown, 1, 2, "%s", rightContents[selected][1]);
+        mvwprintw(rightUp, 2, 3, "%s", rightContents[selected][0]);
+        mvwprintw(rightDown, 2, 3, "%s", rightContents[selected][1]);
         
         // Display
         wrefresh(menu);
@@ -163,6 +166,7 @@ int main(void) {
         }
 
         if (keyPressed == '\n' || keyPressed == KEY_RIGHT) {
+            // switchcase for each menu item?
             if (selected == 4) { // Exit
                 break;
             }
