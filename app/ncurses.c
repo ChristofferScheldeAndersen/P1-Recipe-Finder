@@ -2,12 +2,13 @@
 #include <stdio.h>
 #include <ncurses/ncurses.h>
 
-
+/*
 int goBack(WINDOW *win) {
     if (wgetch(win) == KEY_LEFT) { // Exit
         
     }
 }
+*/
 
 int main(void) {
     // Start ncurses
@@ -38,7 +39,7 @@ int main(void) {
     // Left window
     int menu_h = LINES-5, menu_w = 35, menu_y = 2, menu_x = 2;
     // Upper-right window ((some)20% of available height)
-    int up_h = (LINES-6)/5+1, up_w = COLS - 40, up_y = 2, up_x = 38; // You could also do (LINES-4)*0.2, but integer division truncates the decimal part
+    int up_h = 5, up_w = COLS - 40, up_y = 2, up_x = 38; // You could also do (LINES-4)*0.2, but integer division truncates the decimal part
     // Lower-right window (remaining height)
     int down_h = (LINES-5)-up_h, down_w = COLS - 40, down_y = up_y+up_h, down_x = 38;
     
@@ -132,7 +133,7 @@ int main(void) {
             // Draw borders
             box(menu, 0, 0);
         } else {
-            goback(rightUp); // Go back to menu, make it work somehow
+            //goback(rightUp); // Go back to menu, make it work somehow
             werase(rightUp);
             werase(rightDown);
             rightDownVisible = 1;
