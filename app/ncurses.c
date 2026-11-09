@@ -2,13 +2,6 @@
 #include <stdio.h>
 #include <ncurses/ncurses.h>
 
-/*
-int goBack(WINDOW *win) {
-    if (wgetch(win) == KEY_LEFT) { // Exit
-        
-    }
-}
-*/
 
 int main(void) {
     // Start ncurses
@@ -43,11 +36,7 @@ int main(void) {
     // Lower-right window (remaining height)
     int down_h = (LINES-5)-up_h, down_w = COLS - 40, down_y = up_y+up_h, down_x = 38;
     
-    int fullscreen_w = COLS-4; // Fullscreen window (for selected menu items)
-    int selected = 0; // The section you're hovering over in the menu
-    int inSelectedView = 0; // The section after selecting it
-    int whileLoopRunning = 1; // Enables or disables the while loop, 1 = enabled 0 = disabled
-    int rightDownVisible = 0; // Decides whether the rightDown window is visible, disabled by default
+    //int rightDownVisible = 0; // Decides whether the rightDown window is visible, disabled by default
    
 
     // Create windows
@@ -111,115 +100,94 @@ int main(void) {
         {menu_h, up_w, 0, 0}
     };
 
-
+    int fullscreen_w = COLS-4; // Fullscreen window (for selected menu items)
+    int selected = 0; // The section you're hovering over in the menu
+    int whileLoopRunning = 1; // Enables or disables the while loop, 1 = enabled 0 = disabled
+    int inSelectedView = 0; // The section after selecting it
+    int rightDownVisible;
+    
     /* WHILE LOOP */
     while (whileLoopRunning) {
+        rightDownVisible = (rightResize[selected][2] != 0);
+
         // Constantly visible info
         mvprintw(LINES-3, 2, "Use arrow keys to navigate");
         mvprintw(LINES-2, 2, "Right arrow to select, left arrow to go back");
+        mvprintw(0, 2, "USER PROFILE: NONE");
         refresh();
         
-        if (inSelectedView == 0) {
-            // wresize, resizes the windows rightUp and rightDown based on the selected menu item. The rightResize array contains the new dimensions for each window based on the selected menu item.
-            wresize(rightUp, rightResize[selected][0], rightResize[selected][1]);
-            if (rightResize[selected][2] > 0) { // Checks if the rightDown window should be visible
-                wresize(rightDown, rightResize[selected][2], rightResize[selected][3]);
-                rightDownVisible = 1;
-            }
-
-            werase(menu);
-            werase(rightUp);
-            werase(rightDown);
-            // Draw borders
-            box(menu, 0, 0);
+        // wresize, resizes the windows rightUp and rightDown based on the selected menu item. The rightResize array contains the new dimensions for each window based on the selected menu item.
+        if (inSelectedView) {
+            wresize(rightUp, rightResize[selected][0], fullscreen_w);
+            wresize(rightDown, rightResize[selected][2], fullscreen_w);
+            mvwin(rightUp, up_y, menu_x);
+            mvwin(rightDown, down_y, menu_x);
         } else {
-            //goback(rightUp); // Go back to menu, make it work somehow
-            werase(rightUp);
-            werase(rightDown);
-            rightDownVisible = 1;
+            wresize(rightUp, rightResize[selected][0], rightResize[selected][1]);
+            if (rightDownVisible) wresize(rightDown, rightResize[selected][2], rightResize[selected][3]);
+            mvwin(rightUp, up_y, up_x);
+            mvwin(rightDown, down_y, down_x);
         }
 
+        // what?
+        werase(menu);
+        werase(rightDown);
+        werase(rightUp);
+        
+        // Draw borders
+        if (!inSelectedView) box(menu, 0, 0);
+        if (rightDownVisible) box(rightDown, 0, 0);
         box(rightUp, 0, 0);
-        box(rightDown, 0, 0);
+        
 
         // Window interaction for loop
-        for (int i = 0; i < 5; i++) {
-            if (i == selected) {
-                wattron(menu, A_REVERSE);
-            }
-            mvwprintw(menu, i + 2, 3, "%-*s", menu_w - 6, menuItems[i]); // Uses a pointer to calculate the width of menu minus the spaces on either side (2+2) and minus the borders (1+1)
-            if (i == selected) {
-                wattroff(menu, A_REVERSE);
+        if (!inSelectedView) {
+            for (int i = 0; i < 5; i++) {
+                if (i == selected) {
+                    wattron(menu, A_REVERSE);
+                }
+                mvwprintw(menu, i + 2, 3, "%-*s", menu_w - 6, menuItems[i]); // Uses a pointer to calculate the width of menu minus the spaces on either side (2+2) and minus the borders (1+1)
+                if (i == selected) {
+                    wattroff(menu, A_REVERSE);
+                }
             }
         }
 
         /* TEXT LOADING */
         // Menu window title loader
-        mvwprintw(menu, 0, 2, "| SELECTION MENU |");
+        if (!inSelectedView) mvwprintw(menu, 0, 2, "[ SELECTION MENU ]");
         // Both right windows' title loader
         mvwprintw(rightUp, 0, 2, "%s", rightTitles[selected][0]);
-        mvwprintw(rightDown, 0, 2, "%s", rightTitles[selected][1]);
+        if (rightDownVisible) mvwprintw(rightDown, 0, 2, "%s", rightTitles[selected][1]);
         // Contents (description) of windows
         mvwprintw(rightUp, 2, 3, "%s", rightContents[selected][0]);
-        mvwprintw(rightDown, 2, 3, "%s", rightContents[selected][1]);
+        if (rightDownVisible) mvwprintw(rightDown, 2, 3, "%s", rightContents[selected][1]);
         
         // Display
         wrefresh(menu);
+        wrefresh(rightDown);
         wrefresh(rightUp);
-        if (rightDownVisible == 1) {
-            wrefresh(rightDown);
-        }
-        // wrefresh(rightDown); // deleted because it was causing the rightDown window to be displayed even when it was not needed
 
         // Wait for a key
         int menuKeyPressed = wgetch(menu);
-        if (inSelectedView == 0) {
+
+        if (!inSelectedView) {
             if (menuKeyPressed == KEY_UP && selected > 0) {
                 selected--;
             } else if (menuKeyPressed == KEY_DOWN && selected < 4) {
                 selected++;
+            } else if (menuKeyPressed == '\n' || menuKeyPressed == KEY_RIGHT) {
+                inSelectedView = 1;
             }
-        }
-
-        if (menuKeyPressed == '\n' || menuKeyPressed == KEY_RIGHT) {
-            // Interaction with the actual right windows using selection and KEY_RIGHT
-            switch (selected) {
-            case 0:
-                wresize(rightUp, rightResize[selected][0], fullscreen_w);
-                mvwin(rightUp, up_y, menu_x); // Give the window the menu's position so it doesn't float to the side
-                inSelectedView = 1;
-                break;
-
-            case 1:
-                wresize(rightUp, rightResize[selected][0], fullscreen_w);
-                wresize(rightDown, rightResize[selected][2], fullscreen_w);
-                mvwin(rightUp, up_y, menu_x);
-                mvwin(rightDown, down_y, menu_x);
-                inSelectedView = 1;
-                break;
-
-            case 2:
-                wresize(rightUp, rightResize[selected][0], fullscreen_w);
-                mvwin(rightUp, up_y, menu_x);
-                inSelectedView = 1;
-                break;
-
-            case 3:
-                wresize(rightUp, rightResize[selected][0], fullscreen_w);
-                wresize(rightDown, rightResize[selected][2], fullscreen_w);
-                mvwin(rightUp, up_y, menu_x);
-                mvwin(rightDown, down_y, menu_x);
-                inSelectedView = 1;
-                break;
-
-            case 4:
-                wresize(rightUp, rightResize[selected][0], fullscreen_w);
-                mvwin(rightUp, up_y, menu_x);
-                inSelectedView = 1;
-                if (wgetch(rightUp) == '\n' || wgetch(rightUp) == KEY_RIGHT) { // Exit
-                    whileLoopRunning = 0;
-                    break;
-                }
+        } else {
+            if (menuKeyPressed == KEY_LEFT) {
+                werase(rightUp);
+                werase(rightDown);
+                wrefresh(rightUp);
+                wrefresh(rightDown);
+                inSelectedView = 0;
+            } else if (selected == 4 && menuKeyPressed == KEY_RIGHT) {
+                whileLoopRunning = 0;
             }
         }
     }
@@ -232,48 +200,3 @@ int main(void) {
 
     return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        /*
-        if (keyPressed == '\n' || keyPressed == KEY_RIGHT) {
-            // switchcase for each menu item?
-            // Interaction with the actual right windows using selection and KEY_RIGHT
-            switch (selected) {
-            case 0:
-                showSelectedView(menu, fullscreen_w, rightUp, rightResize[selected][0], NULL, 0);
-                break;
-
-            case 1:
-                showSelectedView(menu, fullscreen_w, rightUp, rightResize[selected][0], rightDown, rightResize[selected][2]);
-                break;
-
-            case 2:
-                showSelectedView(menu, fullscreen_w, rightUp, rightResize[selected][0], NULL, 0);
-                break;
-
-            case 3:
-                showSelectedView(menu, fullscreen_w, rightUp, rightResize[selected][0], rightDown, rightResize[selected][2]);
-                break;
-
-            case 4:
-                showSelectedView(menu, fullscreen_w, rightUp, rightResize[selected][0], NULL, 0);
-                if (keyPressed == '\n' || keyPressed == KEY_RIGHT) { // Exit
-                    whileLoopRunning = 0;
-                    break;
-                }
-            }
-        }
-            */
