@@ -26,13 +26,40 @@ int main(void) {
     // colors
     start_color();
     init_pair(1, COLOR_WHITE, COLOR_BLACK);
+    init_pair(2, COLOR_BLUE, COLOR_BLACK); 
+    init_pair(3, COLOR_GREEN, COLOR_BLACK);
+    init_pair(4, COLOR_RED, COLOR_BLACK);
+    init_pair(5, COLOR_YELLOW, COLOR_BLACK);
+    init_pair(6, COLOR_BLACK, COLOR_BLACK);
     bkgd(COLOR_PAIR(1));
 
-    /*  
-     *  window dimensions
-     *  h = height, w = width
-     *  y = vertical position, x = horizontal position
-     */
+ 
+ box(stdscr, 0, 0); 
+  int tast;
+    for (int i = 0; i < 15; i++)
+
+    {     
+    clear();
+    mvprintw(i, 35, "Welcome to our meal planning program");
+    refresh();
+    napms(100);
+
+    }
+    attron(COLOR_PAIR(3));
+    napms(500);
+    mvprintw(10, 40, "Press SPACE to show menu");
+    attroff(COLOR_PAIR(3));
+    refresh(); 
+   
+    do 
+    {
+        tast = getch(); 
+    }
+    while (tast != ' '); 
+
+     werase(stdscr); 
+     wrefresh(stdscr); 
+   
 
     // menu window
     int menu_h = 10, menu_w = 35, menu_y = 2, menu_x = 2;
