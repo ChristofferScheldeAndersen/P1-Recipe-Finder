@@ -1,179 +1,160 @@
-
 #include <stdio.h>
 #include <ncurses/ncurses.h>
 
+// struct for showing e.g. a "(1)" to the right of currently selected menu_items item
+struct Display {
+    char user_name;
+    int ingredients_typed;
+    int preferences;
+    char erase;
+};
+
 int main(void) {
-    // Start ncurses
+    // start ncurses
     initscr();
     cbreak();
     noecho();
     curs_set(0);
 
-    // Check terminal size
+    // check terminal size
     if (LINES < 18 || COLS < 50) {
         endwin();
         puts("Terminal must be at least 50x18.");
         return 1;
     }
 
-    // Colors
+    // colors
     start_color();
     init_pair(1, COLOR_WHITE, COLOR_BLACK);
     bkgd(COLOR_PAIR(1));
 
-    // Window dimensions
-    // h = height, w = width
-    // y = vertical position, x = horizontal position
+    /*  
+     *  window dimensions
+     *  h = height, w = width
+     *  y = vertical position, x = horizontal position
+     */
 
-    /*
-    Maybe this should be the size for history only? Or recipes too
-    */
-    // Left window
-    int menu_h = LINES-5, menu_w = 35, menu_y = 2, menu_x = 2;
-    // Upper-right window ((some)20% of available height)
-    int up_h = (LINES-6)/5, up_w = COLS - 40, up_y = 2, up_x = 38; // You could also do (LINES-4)*0.2, but integer division truncates the decimal part
-    // Lower-right window (remaining height)
-    int down_h = (LINES-5)-up_h, down_w = COLS - 40, down_y = up_y+up_h, down_x = 38;
+    // menu window
+    int menu_h = 10, menu_w = 35, menu_y = 2, menu_x = 2;
+    // information window
+    int info_h = 10, info_w = COLS - 40, info_y = 2, info_x = 38; // You could also do (LINES-4)*0.2, but integer division truncates the decimal part
+    // interaction window
+    int action_h = (LINES-5)-info_h, action_w = COLS - 2, action_y = info_y+info_h, action_x = 2;
 
-    // Create windows
+    // create windows
     // newwin(height, width, y, x)
     WINDOW *menu = newwin(menu_h, menu_w, menu_y, menu_x);
-    WINDOW *rightUp = newwin(up_h, up_w, up_y, up_x);
-    WINDOW *rightDown = newwin(down_h, down_w, down_y, down_x);
+    WINDOW *info = newwin(info_h, info_w, info_y, info_x);
+    WINDOW *action = newwin(action_h, action_w, action_y, action_x);
 
-    // Set colors
+    // set the colors in each of our windows
     wbkgd(menu, COLOR_PAIR(1));
-    wbkgd(rightUp, COLOR_PAIR(1));
-    wbkgd(rightDown, COLOR_PAIR(1));
+    wbkgd(info, COLOR_PAIR(1));
+    wbkgd(action, COLOR_PAIR(1));
 
-    // Allow arrow keys in the menu window
+    // allows arrow keys in the menu window
     keypad(menu, TRUE);
+    keypad(info, TRUE);
 
-    /*
-    Maybe profile creation first? Or it checks if you have one and prompts you if you enter preferences/history without one
-    
-    Searching is in the menu
-    View recipes shows the recipe name and a few details in rightUp and the full recipe/description in rightDown
-    Preferences allows you to choose between metric and imperial units(?), allergies, and dietary restrictions (vegan, vegetarian, etc.)
-    History shows the last 5 recipes you searched for and/or viewed
-    Exit exits
-    Maybe the windows change depending on what menu item is selected
-    */
-    const char *menuItems[] = {"Search Ingredients", "View Recipes", "Preferences", "History", "Exit"};
-
-    // Window titles
-    const char *rightTitles[][2] = {
-            {"| RECIPE DESCRIPTION |", ""},
-            {"| RECIPES |", "| SELECTED INGREDIENTS |"},
-            {"| PREFERENCES |", ""},
-            {"| RECENT RECIPES |", "| HISTORY |"},
-            {"| EXIT |", ""}
+    // menu selection items
+    const char *menu_items[] = {
+        "User Profile", "Type in Ingredients", "Preferences", "Calculate Best Recipes", "Exit"
     };
 
-    const char *rightContents[][2] = {
-            {"blablabla", ""},
-            {"blebleble", "blublublu"},
-            {"ddddd", ""},
-            {"fffff", "rrrrrrr"},
+    // interaction window titles, only one that needs to update
+    const char *action_titles[] = {
+        "[ USER PROFILES ]", "[ INGREDIENTS SEARCH ]", "[ PREFERENCES ]", "[ 3 BEST RECIPES ]", "[ EXIT ]"
+    };
+
+    const char *info_action_contents[][2] = {
+            {"Your user profile allows you to...", ""},
+            {"Here you can type in your ingredients and...", "Input Ingredients: "},
+            {"Here are your preferences...", "Toggled: "},
+            {"Using your ingredients, we can calculate the best recipes...", "Three best recipes: "},
             {"Are you sure you want to exit?", ""}
     };
 
     /*
-    index meanings:
-    0 = Search Ingredients, second index 0 = rightUp and 1 = rightDown
-    1 = View Recipes
-    2 = Preferences
-    3 = History
-    4 = Exit
-    */
-    const int rightResize[][4] = {
-        {menu_h, up_w, 0, 0},
-        {up_h, up_w, down_h, down_w},
-        {menu_h, up_w, 0, 0},
-        {up_h, up_w, down_h, down_w},
-        {menu_h, up_w, 0, 0}
-    };
+     *  index meanings:
+     *  0 = User Profile, second index 0 = info and 1 = action
+     *  1 = Type in Ingredients
+     *  2 = Preferences
+     *  3 = Calculate Best Recipes
+     *  4 = Exit
+     */
 
-    int selected = 0;
-
-    while (1) {
-        int rightDownVisible = 0;
-
-        erase();
-
-        // Constantly visible info
+    int selected = 0; // the section you're hovering over in the menu
+    int while_loop_running = 1; // enables or disables the while loop, 1 = enabled 0 = disabled, which ends the program
+    
+    /* WHILE LOOP */
+    while (while_loop_running) {
+        // constantly visible info
         mvprintw(LINES-3, 2, "Use arrow keys to navigate");
         mvprintw(LINES-2, 2, "Right arrow to select, left arrow to go back");
-
         refresh();
-        
-        // wresize, resizes the windows rightUp and rightDown based on the selected menu item. The rightResize array contains the new dimensions for each window based on the selected menu item.
-        wresize(rightUp, rightResize[selected][0], rightResize[selected][1]);
 
-        if (rightResize[selected][2] > 0) {
-            wresize(rightDown, rightResize[selected][2], rightResize[selected][3]);
-            rightDownVisible = 1;
-        } else {
-            werase(rightDown);     
-        }
-
+        // what?
         werase(menu);
-        werase(rightUp);
-        werase(rightDown);
-
-         // Draw borders
+        werase(action);
+        werase(info);
+        
+        // draw borders
         box(menu, 0, 0);
-        box(rightUp, 0, 0);
-        box(rightDown, 0, 0);
+        box(action, 0, 0);
+        box(info, 0, 0);        
 
-        // Window interaction for loop
+        // window interaction for loop
         for (int i = 0; i < 5; i++) {
             if (i == selected) {
                 wattron(menu, A_REVERSE);
             }
-            mvwprintw(menu, i + 2, 3, "%-*s", menu_w - 6, menuItems[i]); // Uses a pointer to calculate the width of menu minus the spaces on either side (2+2) and minus the borders (1+1)
+            mvwprintw(menu, i + 2, 3, "%-*s", menu_w - 6, menu_items[i]); // Uses a pointer to calculate the width of menu minus the spaces on either side (2+2) and minus the borders (1+1)
             if (i == selected) {
                 wattroff(menu, A_REVERSE);
             }
         }
 
-        // Right window title loader
-        mvwprintw(rightUp, 0, 2, "%s", rightTitles[selected][0]);
-        mvwprintw(rightDown, 0, 2, "%s", rightTitles[selected][1]);
+        /* TEXT LOADING */
+        // menu window title loader
+        mvwprintw(menu, 0, 2, "[ SELECTION MENU ]");
+        mvwprintw(info, 0, 2, "[ INFORMATION ]");
+        mvwprintw(info, 0, 2, "[ INFORMATION ]");
+        // both right windows' title loader);
+        mvwprintw(action, 0, 2, "%s", action_titles[selected]);
+        // contents (description) of windows
+        mvwprintw(info, 2, 3, "%s", info_action_contents[selected][0]);
+        mvwprintw(action, 2, 3, "%s", info_action_contents[selected][1]);
         
-        // Contents (description) of windows
-        mvwprintw(rightUp, 1, 2, "%s", rightContents[selected][0]);
-        mvwprintw(rightDown, 1, 2, "%s", rightContents[selected][1]);
-        
-        // Display
+        // display
         wrefresh(menu);
-        wrefresh(rightUp);
-        if (rightDownVisible == 1) {
-            wrefresh(rightDown);
-        }
-        // wrefresh(rightDown); // deleted because it was causing the rightDown window to be displayed even when it was not needed
+        wrefresh(action);
+        wrefresh(info);
 
-        // Wait for a key
-        int keyPressed = wgetch(menu);
-
-        if (keyPressed == KEY_UP && selected > 0) {
+        // wait for a key
+        int menu_key_pressed = wgetch(menu);
+        if (menu_key_pressed == KEY_UP && selected > 0) {
             selected--;
-        } else if (keyPressed == KEY_DOWN && selected < 4) {
+        } else if (menu_key_pressed == KEY_UP && selected == 0) {
+            selected = 4;
+        } else if (menu_key_pressed == KEY_DOWN && selected < 4) {
             selected++;
-        }
-
-        if (keyPressed == '\n' || keyPressed == KEY_RIGHT) {
-            if (selected == 4) { // Exit
-                break;
-            }
+        } else if (menu_key_pressed == KEY_DOWN && selected == 4) {
+            selected = 0;
+        } else if (menu_key_pressed == '\n' && selected == 4) {
+            while_loop_running = 0;
         }
     }
-    
-    // Clean up
+
+    // clean up
     delwin(menu);
-    delwin(rightUp);
-    delwin(rightDown);
+    delwin(info);
+    delwin(action);
     endwin();
 
     return 0;
+}
+
+void text_parser(char *text) {
+    
+    return;
 }
