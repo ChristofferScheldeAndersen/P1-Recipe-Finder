@@ -3,14 +3,17 @@
 
 // struct for showing e.g. a "(1)" to the right of currently selected menu_items item
 struct Display {
-    char user_name;
+    char user_name[30];
     int ingredients_typed;
     int preferences;
     char erase;
+
 };
 
 int main(void) {
     // start ncurses
+
+
     initscr();
     cbreak();
     noecho();
