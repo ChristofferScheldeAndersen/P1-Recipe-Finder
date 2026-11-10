@@ -1,0 +1,5 @@
+# name|allergies|diet|favourite_cuisines|favourite_categories
+Jakob|Peanuts|vegan|Italian|pasta
+Chris||||
+Maria|shrimp,egg|Vegetarian|Thai,Indian|chicken,seafood
+broken|line
