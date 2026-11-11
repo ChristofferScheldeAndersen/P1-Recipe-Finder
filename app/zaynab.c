@@ -8,6 +8,7 @@ struct Display {
     int preferences;
     char erase;
 
+    
 };
 
 int main(void) {
@@ -26,6 +27,9 @@ int main(void) {
         return 1;
     }
 
+struct Display profile = {0}; 
+
+profile.ingredients_typed = 4;
     // colors
     start_color();
     init_pair(1, COLOR_WHITE, COLOR_BLACK);
@@ -89,6 +93,7 @@ int main(void) {
     // menu selection items
     const char *menu_items[] = {
         "User Profile", "Type in Ingredients", "Preferences", "Calculate Best Recipes", "Exit"
+        
     };
 
     // interaction window titles, only one that needs to update
@@ -103,6 +108,7 @@ int main(void) {
             {"Using your ingredients, we can calculate the best recipes...", "Three best recipes: "},
             {"Are you sure you want to exit?", ""}
     };
+    
 
     /*
      *  index meanings:
@@ -138,7 +144,12 @@ int main(void) {
             if (i == selected) {
                 wattron(menu, A_REVERSE);
             }
+
             mvwprintw(menu, i + 2, 3, "%-*s", menu_w - 6, menu_items[i]); // Uses a pointer to calculate the width of menu minus the spaces on either side (2+2) and minus the borders (1+1)
+            if (i == 1) {
+                mvwprintw(menu, i +2, 25, "(%d)", profile.ingredients_typed);
+            }
+            
             if (i == selected) {
                 wattroff(menu, A_REVERSE);
             }
