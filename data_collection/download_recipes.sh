@@ -13,4 +13,4 @@ do
     echo "Hentet $antal/$total" >&2
 done < ids.txt > svar.jsonl
 
-jq -s '{meals: [.[].meals[]]}' svar.jsonl > opskrifter.json
+jq -s '{meals: [.[].meals[]]}' svar.jsonl > recipes.json
