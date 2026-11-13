@@ -1,0 +1,1 @@
+Okay. Vi vil gerne arbejde henimod at lave en funktion der som input tager et cJSON recipes objekt og 3 stringlists i form af allergies, allowed_categories og allowed_cusines.
