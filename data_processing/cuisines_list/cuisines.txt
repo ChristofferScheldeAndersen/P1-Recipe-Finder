@@ -1,0 +1,37 @@
+algerian
+argentina
+australian
+british
+canadian
+chinese
+croatian
+egyptian
+filipino
+france
+greek
+india
+irish
+italian
+jamaican
+japanese
+kenyan
+malaysian
+mexican
+moroccan
+netherlands
+norway
+polish
+portuguese
+russian
+saudi arabian
+slovakia
+spanish
+syrian
+thai
+tunisian
+turkish
+ukrainian
+united states
+uruguayan
+venezuela
+vietnamese
