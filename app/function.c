@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <ncurses/ncurses.h>
+#include "ui.h"
 
 /*Lav - */
 void start_screen(void) {
@@ -24,5 +25,31 @@ napms(100);
 
 }
 
+
+void input_ingredients(WINDOW *action) {
+
+    char ingredient[100];
+
+    werase(action);
+    box(action, 0, 0);
+
+    mvwprintw(action, 2, 3, "Type in your ingredients:");
+
+    echo();
+    curs_set(1);
+
+    wmove(action, 3, 3);
+    wrefresh(action);
+
+    wgetnstr(action, ingredient, 99);
+
+    noecho();
+    curs_set(0);
+
+    mvwprintw(action, 5, 3, "You typed in: %s", ingredient);
+
+    wrefresh(action);
+    wgetch(action);
+}
 
 

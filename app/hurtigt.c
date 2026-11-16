@@ -2,14 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-
+#include "UI.H"
 
 // Struct for storing a list of strings
-typedef struct {
-    char **items;
-    int count;
-} StringList;
-
 
 // Add a string to the list
 void string_add(StringList *list, const char *text) {
@@ -98,25 +93,3 @@ StringList search_ingredients(const char *lookup_string) {
 }
 
 
-int main(void) {
-
-    char input[100];
-
-    printf("Type in your ingredient: ");
-
-    fgets(input, sizeof(input), stdin);
-
-    input[strcspn(input, "\r\n")] = '\0';
-
-    StringList found = search_ingredients(input);
-
-    printf("\nSearch results:\n");
-
-    for (int i = 0; i < found.count; i++) {
-        printf("%d. %s\n", i + 1, found.items[i]);
-    }
-
-    string_free(found);
-
-    return 0;
-}

@@ -1,7 +1,10 @@
 #include <stdio.h>
 #include <ncurses/ncurses.h>
+#include "UI.H"
 
-// struct for showing e.g. a "(1)" to the right of currently selected menu_items item
+/*Kompiler sådan: gcc zaynab.c -o zaynab.exe -lncursesw*/
+
+// struct for showing for example a "(number)" to the right of currently selected item
 struct Display {
     char user_name[30];
     int ingredients_typed;
@@ -10,6 +13,8 @@ struct Display {
 
     
 };
+
+void input_ingredients(WINDOW *action);
 
 int main(void) {
     // start ncurses
@@ -171,9 +176,11 @@ profile.ingredients_typed = 4;
         wrefresh(action);
         wrefresh(info);
 
+
         // wait for a key
         int menu_key_pressed = wgetch(menu);
-        if (menu_key_pressed == KEY_UP && selected > 0) {
+
+        else if (menu_key_pressed == KEY_UP && selected > 0) {
             selected--;
         } else if (menu_key_pressed == KEY_UP && selected == 0) {
             selected = 4;
@@ -181,7 +188,10 @@ profile.ingredients_typed = 4;
             selected++;
         } else if (menu_key_pressed == KEY_DOWN && selected == 4) {
             selected = 0;
-        } else if (menu_key_pressed == '\n' && selected == 4) {
+        } else if (menu_key_pressed == '\n' && selected == 1) {
+          input_ingredients(action);
+        } 
+        else if (menu_key_pressed == '\n' && selected == 4) {
             while_loop_running = 0;
         }
     }
@@ -198,4 +208,47 @@ profile.ingredients_typed = 4;
 void text_parser(char *text) {
     
     return;
+}
+
+void input_ingredients(WINDOW *action) {
+    char input[100] = {0};
+
+    werase(action);
+    box(action, 0, 0);
+
+    mvwprintw(action, 2, 3, "Type in an ingredient:");
+    wmove(action, 3, 3);
+    wrefresh(action);
+
+    echo();
+    curs_set(1);
+
+    wgetnstr(action, input, sizeof(input) - 1);
+
+    noecho();
+    curs_set(0);
+
+    StringList found = search_ingredients(input);
+
+    werase(action);
+    box(action, 0, 0);
+
+    mvwprintw(action, 1, 2, "[ INGREDIENT SEARCH ]");
+
+    if (found.count == 0) {
+        mvwprintw(action, 3, 3, "No matches found.");
+    } else {
+        for (int i = 0; i < found.count && i < 5; i++) {
+            mvwprintw(action, i + 3, 3, "%d. %s",
+                      i + 1, found.items[i]);
+        }
+    }
+
+    mvwprintw(action, getmaxy(action) - 2, 3,
+              "Press any key to return.");
+
+    wrefresh(action);
+    wgetch(action);
+
+    string_free(found);
 }
