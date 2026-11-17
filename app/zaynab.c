@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <ncurses/ncurses.h>
-#include "UI.H"
+#include "backend.h"
 
 /*Kompiler sådan: gcc zaynab.c -o zaynab.exe -lncursesw*/
 
@@ -9,10 +9,19 @@ struct Display {
     char user_name[30];
     int ingredients_typed;
     int preferences;
-    char erase;
-
-    
+    char erase;    
 };
+
+void printText(WINDOW *parent, const char *text) {
+    WINDOW *child = derwin(parent, getmaxy(parent) - 4, getmaxx(parent) - 6, 2, 3);
+
+    if (child == NULL) return;
+
+    waddstr(child, text);
+    delwin(child);
+
+    // check if text exceeds window character limit, call scrolling function if yes?
+}
 
 void input_ingredients(WINDOW *action);
 
@@ -180,7 +189,7 @@ profile.ingredients_typed = 4;
         // wait for a key
         int menu_key_pressed = wgetch(menu);
 
-        else if (menu_key_pressed == KEY_UP && selected > 0) {
+         if (menu_key_pressed == KEY_UP && selected > 0) {
             selected--;
         } else if (menu_key_pressed == KEY_UP && selected == 0) {
             selected = 4;

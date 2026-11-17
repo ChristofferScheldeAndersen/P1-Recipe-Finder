@@ -2,7 +2,7 @@
 #include <ncurses/ncurses.h>
 #include "check.h"
 
-int main(int argc, char **argv) {
+int main2(int argc, char **argv) {
     char ingredient_text[MAX_INGREDIENT_TEXT];
     int menu_result;
 

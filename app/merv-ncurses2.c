@@ -9,7 +9,18 @@ struct Display {
     char erase;
 };
 
-int main(void) {
+void printText(WINDOW *parent, const char *text) {
+    WINDOW *child = derwin(parent, getmaxy(parent) - 4, getmaxx(parent) - 6, 2, 3);
+
+    if (child == NULL) return;
+
+    waddstr(child, text);
+    delwin(child);
+
+    // check if text exceeds window character limit, call scrolling function if yes?
+}
+
+int main3(void) {
     // start ncurses
     initscr();
     cbreak();
